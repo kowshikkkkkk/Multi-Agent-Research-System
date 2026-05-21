@@ -16,6 +16,7 @@ class ResearchState(TypedDict):
     report: str
     critique: str
     revision_count: int
+    revision_history: list  # stores all previous reports
 
 def planner_node(state: ResearchState) -> ResearchState:
     print("\n=== PLANNER AGENT ===")
@@ -28,9 +29,24 @@ def planner_node(state: ResearchState) -> ResearchState:
 def researcher_node(state: ResearchState) -> ResearchState:
     print("\n=== RESEARCHER AGENT ===")
     t = time.time()
-    research = researcher_agent(state["plan"])
+    
+    # If this is a revision — tell Researcher WHY it was sent back
+    if state["revision_count"] > 0 and state["critique"]:
+        enhanced_plan = f"""
+Original Plan: {state["plan"]}
+
+REVISION #{state["revision_count"]} REQUIRED.
+Critic Feedback: {state["critique"]}
+
+Focus specifically on addressing the critique above.
+Do not repeat the same research — dig deeper into the flagged areas.
+"""
+    else:
+        enhanced_plan = state["plan"]
+    
+    research = researcher_agent(enhanced_plan)
     print(research)
-    log_agent("researcher", state["plan"], research, t)
+    log_agent("researcher", enhanced_plan, research, t)
     return {"research": research}
 
 def analyst_node(state: ResearchState) -> ResearchState:
@@ -60,9 +76,20 @@ def critic_node(state: ResearchState) -> ResearchState:
         final_score="6/10" if not approved else "8+/10",
         approved=approved
     )
+    
+    # Store current report in history before potentially overwriting
+    history = state.get("revision_history", [])
+    history.append({ 
+        "revision": state["revision_count"],
+        "report": state["report"],
+        "critique": critique,
+        "approved": approved
+    })
+    
     return {
         "critique": critique,
-        "revision_count": state["revision_count"] + 1
+        "revision_count": state["revision_count"] + 1,
+        "revision_history": history
     }
 
 def route_after_critic(state: ResearchState) -> str:

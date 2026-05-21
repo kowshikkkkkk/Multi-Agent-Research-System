@@ -2,6 +2,7 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
 from utils.rag import retrieve
 from sql_query import FinancialDataQuery
+from cross_validate import cross_validate
 from dotenv import load_dotenv
 import os
 
@@ -14,14 +15,10 @@ llm = ChatGroq(
     max_tokens=800
 )
 
-# Initialize SQL query interface
 sql_db = FinancialDataQuery(db_path="financial_data.db")
 
 
 def _get_sql_data(subtasks: str) -> dict:
-    """
-    Query structured financial database for facts.
-    """
     print("  [SQL] Querying financial database...")
     sql_result = sql_db.query(subtasks)
     
@@ -46,28 +43,19 @@ def _get_sql_data(subtasks: str) -> dict:
 
 
 def researcher_agent(subtasks: str) -> str:
-    """
-    Enhanced researcher agent with dual-source retrieval (SQL + RAG).
-    
-    Args:
-        subtasks: Research task/subtask
-    
-    Returns:
-        str: Combined research findings from SQL + RAG sources
-    """
     print("\n" + "="*70)
     print("RESEARCHER AGENT (Dual-Source: SQL + RAG)")
     print("="*70)
     
-    # Step 1: Get structured data from SQL
+    # Step 1: SQL
     print("Retrieving structured financial data from database...")
     sql_data = _get_sql_data(subtasks)
     
-    # Step 2: Get unstructured data from RAG
+    # Step 2: RAG
     print("Retrieving relevant content from document store...")
     rag_context = retrieve(subtasks, k=3)
     
-    # Step 3: Combine both sources for the LLM
+    # Step 3: Combine
     combined_context = f"""
 DATA SOURCES (Dual-Retrieval):
 
@@ -87,7 +75,7 @@ INSTRUCTIONS:
 - Do not make up any numbers or facts
     """
     
-    # Step 4: Invoke LLM with combined context
+    # Step 4: LLM
     messages = [
         SystemMessage(content="""You are an advanced research agent with access to BOTH structured and unstructured data.
 
@@ -109,7 +97,24 @@ Format your response with:
     
     response = llm.invoke(messages)
     
-    # Step 5: Add source attribution to response
-    attribution = f"\n\n---\n**Sources Used:**\n- SQL Database: {sql_data['record_count']} records retrieved\n- RAG Corpus: Document context extracted\n- Method: Dual-source cross-validation for hallucination prevention"
+    # Step 5: Programmatic cross-validation
+    validation = cross_validate(subtasks, rag_context)
     
-    return response.content + attribution
+    validation_summary = f"""
+---
+**CROSS-VALIDATION REPORT**
+- Status:     {validation['status']}
+- Confidence: {validation['confidence']}
+- SQL Truth:  {validation.get('sql_summary', 'N/A')}
+- Verified:   {len(validation['verified_facts'])} facts
+- Contradictions: {len(validation['contradictions'])}
+"""
+    
+    if validation['contradictions']:
+        validation_summary += "\n⚠️ CONTRADICTIONS:\n"
+        for c in validation['contradictions']:
+            validation_summary += f"  RAG says {c['rag_number']} but SQL says {c['sql_value']}\n"
+    
+    attribution = f"\n---\n**Sources:** SQL ({sql_data['record_count']} records) + RAG | Validation: {validation['status']} ({validation['confidence']} confidence)"
+    
+    return response.content + validation_summary + attribution

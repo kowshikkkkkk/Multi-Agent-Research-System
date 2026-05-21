@@ -52,7 +52,8 @@ initial_state = {
     "analysis": "",
     "report": "",
     "critique": "",
-    "revision_count": 0
+    "revision_count": 0,
+    "revision_history": [] 
 }
 
 print("🚀 Starting Multi-Agent Research Pipeline...")
