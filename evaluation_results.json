@@ -1,0 +1,52 @@
+[
+  {
+    "question": "What was Infosys total revenue in fiscal year 2024?",
+    "retrieval_relevance": 1.0,
+    "faithfulness": 1.0,
+    "completeness": 1.0,
+    "overall": 1.0,
+    "retrieval_time": 0.032,
+    "generation_time": 0.448,
+    "total_time": 0.48
+  },
+  {
+    "question": "What is Infosys operating margin?",
+    "retrieval_relevance": 0.667,
+    "faithfulness": 1.0,
+    "completeness": 0.0,
+    "overall": 0.556,
+    "retrieval_time": 0.027,
+    "generation_time": 0.684,
+    "total_time": 0.711
+  },
+  {
+    "question": "What are the key business segments of Infosys?",
+    "retrieval_relevance": 0.4,
+    "faithfulness": 0.8,
+    "completeness": 0.0,
+    "overall": 0.4,
+    "retrieval_time": 0.027,
+    "generation_time": 0.997,
+    "total_time": 1.024
+  },
+  {
+    "question": "How many employees does Infosys have?",
+    "retrieval_relevance": 0.4,
+    "faithfulness": 1.0,
+    "completeness": 0.8,
+    "overall": 0.733,
+    "retrieval_time": 0.032,
+    "generation_time": 5.49,
+    "total_time": 5.522
+  },
+  {
+    "question": "What is Infosys cloud strategy?",
+    "retrieval_relevance": 0.6,
+    "faithfulness": 0.8,
+    "completeness": 0.5,
+    "overall": 0.633,
+    "retrieval_time": 0.016,
+    "generation_time": 6.052,
+    "total_time": 6.068
+  }
+]
