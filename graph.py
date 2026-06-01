@@ -30,21 +30,37 @@ def researcher_node(state: ResearchState) -> ResearchState:
     print("\n=== RESEARCHER AGENT ===")
     t = time.time()
     
-    # If this is a revision — tell Researcher WHY it was sent back
+    # Determine retrieval strategy based on revision
+    retrieval_config = {
+        "k": 5,
+        "keywords_to_emphasize": []
+    }
+    
     if state["revision_count"] > 0 and state["critique"]:
+        # PARSE critique to adjust strategy
+        critique_analysis = extract_missing_from_critique(state["critique"])
+        retrieval_config["k"] = critique_analysis["adjusted_k"]
+        retrieval_config["keywords_to_emphasize"] = critique_analysis["keywords"]
+        
         enhanced_plan = f"""
 Original Plan: {state["plan"]}
 
 REVISION #{state["revision_count"]} REQUIRED.
 Critic Feedback: {state["critique"]}
 
-Focus specifically on addressing the critique above.
-Do not repeat the same research — dig deeper into the flagged areas.
+ADJUSTED RETRIEVAL:
+- Searching with emphasis on: {', '.join(retrieval_config['keywords_to_emphasize'])}
+- Retrieving {retrieval_config['k']} chunks (expanded from 5)
+- Focus specifically on addressing the critique above.
 """
     else:
         enhanced_plan = state["plan"]
     
-    research = researcher_agent(enhanced_plan)
+    # Pass config to researcher_agent
+    research = researcher_agent(
+        enhanced_plan,
+        retrieval_config=retrieval_config
+    )
     print(research)
     log_agent("researcher", enhanced_plan, research, t)
     return {"research": research}
@@ -102,6 +118,34 @@ def route_after_critic(state: ResearchState) -> str:
     else:
         print("\n🔄 NEEDS REVISION — looping back to researcher...")
         return "researcher"
+
+def extract_missing_from_critique(critique: str) -> dict:
+    """Parse critique to identify what's missing"""
+    missing_keywords = []
+    adjusted_k = 5  # default
+    
+    # Common patterns in critiques
+    if any(word in critique.lower() for word in ["missing", "lacks", "incomplete", "insufficient"]):
+        adjusted_k = 8  # Get more chunks
+        missing_keywords.append("comprehensive analysis")
+    
+    if "risk" in critique.lower() and "risk" not in missing_keywords:
+        missing_keywords.append("risk assessment challenges threats")
+    
+    if "financial" in critique.lower() and "financial" not in missing_keywords:
+        missing_keywords.append("revenue margins profitability")
+    
+    if "strategy" in critique.lower() and "strategy" not in missing_keywords:
+        missing_keywords.append("strategy future outlook plans")
+    
+    if "competitive" in critique.lower():
+        missing_keywords.append("competition market position")
+    
+    return {
+        "keywords": missing_keywords,
+        "adjusted_k": adjusted_k
+    }
+
 
 def build_graph(query: str):
     start_run(query)

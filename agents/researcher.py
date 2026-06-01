@@ -42,18 +42,32 @@ def _get_sql_data(subtasks: str) -> dict:
         }
 
 
-def researcher_agent(subtasks: str) -> str:
+def researcher_agent(subtasks: str, retrieval_config: dict = None) -> str:
     print("\n" + "="*70)
     print("RESEARCHER AGENT (Dual-Source: SQL + RAG)")
     print("="*70)
     
-    # Step 1: SQL
-    print("Retrieving structured financial data from database...")
-    sql_data = _get_sql_data(subtasks)
+    # Default config if not provided
+    if retrieval_config is None:
+        retrieval_config = {"k": 5, "keywords_to_emphasize": []}
     
-    # Step 2: RAG
-    print("Retrieving relevant content from document store...")
-    rag_context = retrieve(subtasks, k=3)
+    k = retrieval_config["k"]
+    extra_keywords = retrieval_config["keywords_to_emphasize"]
+    
+    # Adjust query on revision
+    if extra_keywords:
+        adjusted_subtasks = subtasks + " " + " ".join(extra_keywords)
+        print(f"🔄 REVISION MODE: Added keywords: {', '.join(extra_keywords)}")
+    else:
+        adjusted_subtasks = subtasks
+    
+    # Step 1: SQL (adjusted query)
+    print("Retrieving structured financial data from database...")
+    sql_data = _get_sql_data(adjusted_subtasks)
+    
+    # Step 2: RAG (adjusted query AND adjusted k)
+    print(f"Retrieving relevant content from document store (k={k})...")
+    rag_context = retrieve(adjusted_subtasks, k=k) 
     
     # Step 3: Combine
     combined_context = f"""
